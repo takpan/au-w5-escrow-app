@@ -1,29 +1,31 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
+import { expect } from 'chai';
+import hardhat from 'hardhat';
+
+const { ethers } = hardhat;
 
 describe('Escrow', function () {
   let contract;
   let depositor;
   let beneficiary;
   let arbiter;
-  const deposit = ethers.utils.parseEther('1');
+  const deposit = ethers.parseEther('1');
   beforeEach(async () => {
-    depositor = ethers.provider.getSigner(0);
-    beneficiary = ethers.provider.getSigner(1);
-    arbiter = ethers.provider.getSigner(2);
+    depositor = await ethers.provider.getSigner(0);
+    beneficiary = await ethers.provider.getSigner(1);
+    arbiter = await ethers.provider.getSigner(2);
     const Escrow = await ethers.getContractFactory('Escrow');
     contract = await Escrow.deploy(
-      arbiter.getAddress(),
-      beneficiary.getAddress(),
+      arbiter.address,
+      beneficiary.address,
       {
         value: deposit,
       }
     );
-    await contract.deployed();
+    await contract.waitForDeployment();
   });
 
   it('should be funded initially', async function () {
-    let balance = await ethers.provider.getBalance(contract.address);
+    let balance = await ethers.provider.getBalance(contract.getAddress());
     expect(balance).to.eq(deposit);
   });
 
@@ -39,7 +41,7 @@ describe('Escrow', function () {
       const approveTxn = await contract.connect(arbiter).approve();
       await approveTxn.wait();
       const after = await ethers.provider.getBalance(beneficiary.getAddress());
-      expect(after.sub(before)).to.eq(deposit);
+      expect(after-before).to.eq(deposit);
     });
   });
 });
