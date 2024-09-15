@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { Box, Flex, Text, Grid, Container, Stack, FormControl, FormLabel, Input, Button, useColorModeValue } from '@chakra-ui/react';
+import { Box, Button, Container, Flex, FormControl, FormLabel, Grid, Input, Select, Stack, Text, useColorModeValue } from '@chakra-ui/react';
 import deploy from './deploy';
 import Escrow from './Escrow';
 
@@ -10,7 +10,9 @@ function App() {
   const [escrows, setEscrows] = useState([]);
   const [account, setAccount] = useState();
   const [signer, setSigner] = useState();
+  const [unit, setUnit] = useState('wei');
 
+  // Initialiaze account
   useEffect(() => {
     async function getAccounts() {
       const accounts = await provider.send('eth_requestAccounts', []);
@@ -20,18 +22,33 @@ function App() {
     }
 
     getAccounts();
-  }, [account]);
+  }, []);
 
+  // Update the account and current signer whenever the Metamask account changes
   window.ethereum.on('accountsChanged', async (accounts) => {
     if (accounts.length > 0) {
       setAccount(accounts[0]);
+      setSigner(await provider.getSigner());
     }
   });
 
+  // Connect wallet method
+  async function connectWallet() {
+    try {
+      const accounts = await provider.send('eth_requestAccounts', []);
+      setAccount(accounts[0]);
+      setSigner(await provider.getSigner());
+    } catch (error) {
+      console.error("Error connecting to wallet:", error);
+    }
+  }
+
+  // Create new escrow contract
   async function newContract() {
     const beneficiary = document.getElementById('beneficiary').value;
     const arbiter = document.getElementById('arbiter').value;
-    const value = ethers.toBigInt(document.getElementById('wei').value);
+    const amount = document.getElementById('amount').value; // Convert amount to wei based on the selected unit
+    const value = ethers.parseUnits(amount, unit);
     const escrowContract = await deploy(signer, arbiter, beneficiary, value);
     const contrctAddress = await escrowContract.getAddress();
 
@@ -43,7 +60,7 @@ function App() {
       value: value.toString(),
     };
 
-    setEscrows([...escrows, escrow]);
+    setEscrows([...escrows, escrow]); // Update the escrows state adding the new escrow
   }
 
   return (
@@ -63,9 +80,18 @@ function App() {
           <Container maxW="container.xlg">
           <Flex align="center" justify="flex-start" h="100%">
             <Text fontSize="3xl" fontWeight="bold">
-              Escrow App
+              Escrow Dapp
             </Text>
-            </Flex>
+            <Button
+              colorScheme="teal"
+              onClick={connectWallet}
+              position="absolute"
+              top="6"
+              right="6"
+            >
+              {account ? `Connected account: ${account.slice(0, 6)}...${account.slice(-4)}` : 'Connect Wallet'}
+            </Button>
+          </Flex>
           </Container>
       </Box>
 
@@ -96,7 +122,18 @@ function App() {
             </FormControl>
             <FormControl>
               <FormLabel>Deposit Amount</FormLabel>
-              <Input id="wei" placeholder="wei" size="lg" />
+              <Stack spacing={2}>
+                <Input id="amount" placeholder="Amount" size="lg" />
+                <Select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="Select unit"
+                >
+                  <option value="wei">Wei</option>
+                  <option value="gwei">Gwei</option>
+                  <option value="ether">Ether</option>
+                </Select>
+              </Stack>
             </FormControl>
             <Button
               colorScheme="teal"
@@ -134,7 +171,7 @@ function App() {
                   />
                 ))
               ) : (
-                <Text>No pending escrows at the moment.</Text>
+                <Text>No pending escrows</Text>
               )}
           </Box>
         </Box>

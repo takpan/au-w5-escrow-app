@@ -1,5 +1,6 @@
+import { ethers } from 'ethers';
 import { useState } from 'react';
-import { Box, Text, Stack, Button, useToast } from '@chakra-ui/react';
+import { Box, Button, Select, Stack, Text, useToast } from '@chakra-ui/react';
 
 export default function Escrow({
     contract,
@@ -9,36 +10,52 @@ export default function Escrow({
     value,
     signer
   }) {
-    const [isApproved, setIsApproved] = useState(false);
-    const toast = useToast();
 
-    async function approve(escrowContract, signer) {
-      const approveTxn = await escrowContract.connect(signer).approve();
-      await approveTxn.wait();
+  const [isApproved, setIsApproved] = useState(false);
+  const [unit, setUnit] = useState('wei'); // State to store the selected unit
+  const toast = useToast();
+
+  // Approve escrow method
+  async function approve(escrowContract, signer) {
+    const approveTxn = await escrowContract.connect(signer).approve();
+    await approveTxn.wait();
+  }
+
+  // Convert value to the selected unit
+  const convertValue = (value, unit) => {
+    switch (unit) {
+      case 'gwei':
+        return ethers.formatUnits(value, 'gwei');
+      case 'ether':
+        return ethers.formatUnits(value, 'ether');
+      default:
+        return value.toString(); // Default is wei
     }
+  };
 
-    const handleButtonClick = async (e) => {
-      e.preventDefault();
-      try {
-        await approve(contract, signer);
-        setIsApproved(true);
-        toast({
-          title: "Approval Successful",
-          description: "The escrow has been approved successfully.",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
-      } catch (error) {
-        toast({
-          title: "Approval Failed",
-          description: "There was an error approving the escrow.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
+  // Approve button handler
+  const handleButtonClick = async (e) => {
+    e.preventDefault();
+    try {
+      await approve(contract, signer);
+      setIsApproved(true);
+      toast({
+        title: "Approval Successful",
+        description: "The escrow has been approved successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Approval Failed",
+        description: "There was an error approving the escrow.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   return (
     <Box 
@@ -69,7 +86,17 @@ export default function Escrow({
         </Stack>
         <Stack spacing={1}>
           <Text fontWeight="bold">Value</Text>
-          <Text>{value}</Text>
+            <Select
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              size="sm"
+              mb={2}
+            >
+              <option value="wei">Wei</option>
+              <option value="gwei">Gwei</option>
+              <option value="ether">Ether</option>
+            </Select>
+          <Text>{convertValue(value, unit)}</Text>
         </Stack>
         <Button
           colorScheme={isApproved ? "green" : "teal"}
