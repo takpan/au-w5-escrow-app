@@ -20,29 +20,35 @@ function App() {
       const accounts = await provider.send('eth_requestAccounts', []);
 
       setAccount(accounts[0]);
-      setSigner(provider.getSigner());
+      setSigner(await provider.getSigner());
     }
 
     getAccounts();
   }, [account]);
+
+  window.ethereum.on('accountsChanged', async (accounts) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+    }
+  });
 
   async function newContract() {
     const beneficiary = document.getElementById('beneficiary').value;
     const arbiter = document.getElementById('arbiter').value;
     const value = ethers.toBigInt(document.getElementById('wei').value);
     const escrowContract = await deploy(signer, arbiter, beneficiary, value);
-
+    const contractAddress = await escrowContract.getAddress();
 
     const escrow = {
-      address: escrowContract.address,
+      address: contractAddress,
       arbiter,
       beneficiary,
       value: value.toString(),
-      handleApprove: async () => {
+      handleApprove: async (signer) => {
         escrowContract.on('Approved', () => {
-          document.getElementById(escrowContract.address).className =
+          document.getElementById(contractAddress).className =
             'complete';
-          document.getElementById(escrowContract.address).innerText =
+          document.getElementById(contractAddress).innerText =
             "✓ It's been approved!";
         });
 
@@ -90,7 +96,10 @@ function App() {
 
         <div id="container">
           {escrows.map((escrow) => {
-            return <Escrow key={escrow.address} {...escrow} />;
+            return <Escrow
+            key={`${escrow.address}`}
+            {...escrow}
+            signer={signer} />;
           })}
         </div>
       </div>
