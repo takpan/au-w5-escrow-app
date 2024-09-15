@@ -24,3 +24,6 @@ Compile the contracts using `npx hardhat compile`. The artifacts will be placed 
 
 To run the front-end application run `npm start` from the `/app` directory. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
+![Alt text](./img/au-w5-layout.png)
+
+The project is based on the Alchemy univeristy week 5 project template: https://github.com/alchemyplatform/escrow-hardhat
